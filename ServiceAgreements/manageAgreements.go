@@ -119,6 +119,8 @@ func (t *ManageAgreement) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.createServiceAgreement(stub, args)
 	}else if function == "updateServiceAgreement" {											//update Service Agreement
 		return t.updateServiceAgreement(stub, args)
+	}else if function == "checkPenalty" {											//update Service Agreement
+		return t.checkPenalty(stub, args)
 	}
 	fmt.Println("invoke did not find func: " + function)					//error
 	errMsg := "{ \"message\" : \"Received unknown function invocation\", \"code\" : \"503\"}"
@@ -454,6 +456,14 @@ func (t *ManageAgreement) checkPenalty(stub shim.ChaincodeStubInterface, args []
 			if err != nil {
 				return nil, err
 			} 
+			fmt.Println(tosend);
+		}else{
+			tosend := "{ \"Service Agreement Id\" : \""+agreementId+"\", \"message\" : \"Penalty cannot be applied to the agreement.\", \"code\" : \"200\"}"
+			err = stub.SetEvent("evtsender", []byte(tosend))
+			if err != nil {
+				return nil, err
+			}
+			fmt.Println(tosend);
 		}
 	}else{
 		errMsg := "{ \"message\" : \""+ agreementId+ " Not Found.\", \"code\" : \"503\"}"
