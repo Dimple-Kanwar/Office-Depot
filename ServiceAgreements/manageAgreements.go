@@ -307,7 +307,7 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 			// Customer account deducted and Service Provider account debited with initial payment
 			amountPaid := strconv.FormatFloat(res.DueAmount * res.InitialPaymentPercentage, 'f', 2, 64) 
 			function := "updateAccountBalance"
-			invokeArgs1 := util.ToChaincodeArgs(function, res.CustomerId, res.ServiceProviderId, amountPaid)
+			invokeArgs1 := util.ToChaincodeArgs(function, res.CustomerId, res.ServiceProviderId, amountPaid, "Initial")
 			update_result, err1 := stub.InvokeChaincode(accountChaincode, invokeArgs1)
 			if err1 != nil {
 				errStr := fmt.Sprintf("Error in updating account balance from 'Account' chaincode. Got error: %s", err1.Error())
@@ -340,7 +340,7 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 			//	Service Provider account credited with final payment
 			amountPaid := strconv.FormatFloat(res.DueAmount -(res.DueAmount * res.InitialPaymentPercentage), 'f', 2, 64) 
 			function := "updateAccountBalance"
-			invokeArgs1 := util.ToChaincodeArgs(function, res.CustomerId, res.ServiceProviderId, amountPaid)
+			invokeArgs1 := util.ToChaincodeArgs(function, res.CustomerId, res.ServiceProviderId, amountPaid, "Final")
 			update_result, err1 := stub.InvokeChaincode(accountChaincode, invokeArgs1)
 			if err1 != nil {
 				errStr := fmt.Sprintf("Error in updating account balance from 'Account' chaincode. Got error: %s", err1.Error())
@@ -413,6 +413,7 @@ func (t *ManageAgreement) checkPenalty(stub shim.ChaincodeStubInterface, args []
 	lastUpdatedBy := args[1]
 	paymentChaincode := args[2]
 	accountChaincode := args[3]
+
 	// Fetch the service agreement details by agreementId
 	agreementAsBytes, err := stub.GetState(agreementId)		
 	if err != nil {
@@ -425,13 +426,16 @@ func (t *ManageAgreement) checkPenalty(stub shim.ChaincodeStubInterface, args []
 	if res.AgreementID == agreementId{
 		fmt.Println("Agreement found with agreementId : " + agreementId)
 		fmt.Println(res);
-		currentTime := time.Now().Unix()
-		if res.Status == "Pending start with Service Provider" && res.PenaltyTimePeriod < currentTime - res.LastUpdateDate{
+		/*currentTime := time.Now().Unix()
+		fmt.Println(currentTime);
+		fmt.Println(res.LastUpdateDate);
+		fmt.Println(currentTime - res.LastUpdateDate);*/
+		if res.Status == "Pending start with Service Provider" /*&& res.PenaltyTimePeriod < currentTime - res.LastUpdateDate*/{
 			//	Service Provider account deducted with penalty amount
-			amountPaid := res.DueAmount + res.PenaltyAmount
+			amountPaid := res.PenaltyAmount
 			paymentStatus := "Penalty Payment"
 			function := "updateAccountBalance"
-			invokeArgs := util.ToChaincodeArgs(function, res.ServiceProviderId, res.CustomerId, strconv.FormatFloat(res.PenaltyAmount,'f', 2, 64))
+			invokeArgs := util.ToChaincodeArgs(function, res.CustomerId, res.ServiceProviderId, strconv.FormatFloat(res.PenaltyAmount,'f', 2, 64),"Penalty")
 			update_result, err := stub.InvokeChaincode(accountChaincode, invokeArgs)
 			if err != nil {
 				errStr := fmt.Sprintf("Error in updating account balance from 'Account' chaincode. Got error: %s", err.Error())
