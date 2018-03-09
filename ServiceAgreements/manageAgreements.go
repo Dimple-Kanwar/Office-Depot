@@ -232,6 +232,27 @@ func (t *ManageAgreement) createServiceAgreement(stub shim.ChaincodeStubInterfac
 	if err != nil {
 		return nil, err
 	}
+
+	//get the Service Agreement index
+	serviceAgreementIndexStrAsBytes, err := stub.GetState(ServiceAgreementIndexStr)
+	if err != nil {
+		return nil, errors.New("Failed to get Service Agreement index")
+	}
+	var ServiceAgreementIndex []string
+
+	json.Unmarshal(serviceAgreementIndexStrAsBytes, &ServiceAgreementIndex)							//un stringify it aka JSON.parse()
+	fmt.Print("serviceAgreementIndexStrAsBytes after unmarshal..before append: ")
+	fmt.Println(serviceAgreementIndexStrAsBytes)
+
+	//append
+	ServiceAgreementIndex = append(ServiceAgreementIndex, agreementId)									//add agreementId to index list
+	fmt.Println("! Service Agreement index: ", ServiceAgreementIndex)
+	jsonAsBytes, _ := json.Marshal(ServiceAgreementIndex)
+	err = stub.PutState(ServiceAgreementIndexStr, jsonAsBytes)						//store Service Agreement as an index
+	if err != nil {
+		return nil, err
+	}
+
 	// event message to set on successful service agreement creation
 	tosend := "{ \"Service Agreement Id\" : \""+agreementId+"\", \"message\" : \"Service agreement created succcessfully\", \"code\" : \"200\"}"
 	err = stub.SetEvent("evtsender", []byte(tosend))
@@ -276,14 +297,6 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 		fmt.Println("Agreement found with agreementId : " + agreementId)
 		fmt.Println(res);
 		
-		/*if res.Status == "Pending Customer Approval" {
-			res.Status = "Pending Service Provider Approval"
-		}else if res.Status == "Pending Service Provider Approval"{
-			res.Status = "Work In Progress"
-		}else if res.Status == "Work In Progress"{
-			res.Status = "Work Completed"
-		}*/
-		/*newStatus = status*/
 		res.LastUpdatedBy = lastUpdatedBy
 		res.LastUpdateDate = time.Now().Unix() // current unix timestamp
 	}else{
