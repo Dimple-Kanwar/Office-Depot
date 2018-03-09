@@ -296,9 +296,87 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 	if res.AgreementID == agreementId{
 		fmt.Println("Agreement found with agreementId : " + agreementId)
 		fmt.Println(res);
-		
 		res.LastUpdatedBy = lastUpdatedBy
 		res.LastUpdateDate = time.Now().Unix() // current unix timestamp
+		var paymentStatus string
+		// set Payment status according to agreement status
+		if res.Status == "Pending Customer Acceptance" && newStatus == "Pending start with Service Provider"{
+			paymentStatus = "Initial Payment"
+			// Customer account deducted and Service Provider account debited with initial payment
+			amountPaid := strconv.FormatFloat(res.DueAmount * res.InitialPaymentPercentage, 'f', 2, 64) 
+			function := "updateAccountBalance"
+			invokeArgs1 := util.ToChaincodeArgs(function, res.CustomerId, res.ServiceProviderId, amountPaid)
+			update_result, err1 := stub.InvokeChaincode(accountChaincode, invokeArgs1)
+			if err1 != nil {
+				errStr := fmt.Sprintf("Error in updating account balance from 'Account' chaincode. Got error: %s", err1.Error())
+				fmt.Printf(errStr)
+				return nil, errors.New(errStr)
+			}
+			fmt.Println("transaction Hash: ")
+			fmt.Println(update_result);
+			fmt.Println("Account Balances updated successfully.");
+			// create Payment transaction 	
+			_function := "createPayment"
+			invokeArgs2 := util.ToChaincodeArgs(_function, res.AgreementID, paymentStatus, res.CustomerId, res.ServiceProviderId, amountPaid, lastUpdatedBy)
+			result, err2 := stub.InvokeChaincode(paymentChaincode, invokeArgs2)
+			if err2 != nil {
+				errStr := fmt.Sprintf("Error in fetching Payment details from 'Payment' chaincode. Got error: %s", err2.Error())
+				fmt.Printf(errStr)
+				return nil, errors.New(errStr)
+			}
+			fmt.Println("transaction Hash: ")
+			fmt.Println(result);
+			fmt.Println("Payment Created successfully.");
+		}else if newStatus == "Work in Progress" {
+			// no penalty applied
+			// do nothing, just update the agreement status	
+		} else if newStatus == "Work Completed" {
+			paymentStatus = "Final Payment"
+			//	Customer account deducted with final payment (total amount – initial payment)
+			//	Service Provider account credited with final payment
+			amountPaid := strconv.FormatFloat(res.DueAmount -(res.DueAmount * res.InitialPaymentPercentage), 'f', 2, 64) 
+			function := "updateAccountBalance"
+			invokeArgs1 := util.ToChaincodeArgs(function, res.CustomerId, res.ServiceProviderId, amountPaid)
+			update_result, err1 := stub.InvokeChaincode(accountChaincode, invokeArgs1)
+			if err1 != nil {
+				errStr := fmt.Sprintf("Error in updating account balance from 'Account' chaincode. Got error: %s", err1.Error())
+				fmt.Printf(errStr)
+				return nil, errors.New(errStr)
+			}
+			fmt.Println("transaction Hash: ")
+			fmt.Println(update_result);
+			fmt.Println("Account Balances updated successfully.");
+			// create Payment transaction 	
+			_function := "createPayment"
+			invokeArgs2 := util.ToChaincodeArgs(_function, res.AgreementID, paymentStatus, res.CustomerId, res.ServiceProviderId, amountPaid, lastUpdatedBy)
+			result, err2 := stub.InvokeChaincode(paymentChaincode, invokeArgs2)
+			if err2 != nil {
+				errStr := fmt.Sprintf("Error in fetching Payment details from 'Payment' chaincode. Got error: %s", err2.Error())
+				fmt.Printf(errStr)
+				return nil, errors.New(errStr)
+			}
+			fmt.Println("transaction Hash: ")
+			fmt.Println(result);
+			fmt.Println("Payment Created successfully.");
+		}
+		//build the Service Agreement json
+		serviceAgreementJson := &Service_agreement{res.AgreementID, newStatus, res.CustomerId, res.ServiceProviderId, res.StartDate, res.EndDate, res.DueAmount, res.InitialPaymentPercentage, res.PenaltyAmount, res.PenaltyTimePeriod, res.LastUpdatedBy, res.LastUpdateDate}
+		
+		// convert *Service_agreement to []byte
+		serviceAgreementJsonasBytes, err := json.Marshal(serviceAgreementJson)
+		if err != nil {
+			return nil, err
+		}
+		//store Agreement id as key
+		err = stub.PutState(res.AgreementID, serviceAgreementJsonasBytes)									
+		if err != nil {
+			return nil, err
+		}
+		tosend := "{ \"Service Agreement ID\" : \""+res.AgreementID+"\", \"message\" : \"Service Agreement updated succcessfully\", \"code\" : \"200\"}"
+		err = stub.SetEvent("evtsender", []byte(tosend))
+		if err != nil {
+			return nil, err
+		}
 	}else{
 		errMsg := "{ \"message\" : \""+ agreementId+ " Not Found.\", \"code\" : \"503\"}"
 		err = stub.SetEvent("errEvent", []byte(errMsg))
@@ -307,57 +385,7 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 		} 
 		return nil, nil
 	}
-
-	//build the Service Agreement json
-	serviceAgreementJson := &Service_agreement{res.AgreementID, newStatus, res.CustomerId, res.ServiceProviderId, res.StartDate, res.EndDate, res.DueAmount, res.InitialPaymentPercentage, res.PenaltyAmount, res.PenaltyTimePeriod, res.LastUpdatedBy, res.LastUpdateDate}
-	
-	// convert *Service_agreement to []byte
-	serviceAgreementJsonasBytes, err := json.Marshal(serviceAgreementJson)
-	if err != nil {
-		return nil, err
-	}
-	//store Agreement id as key
-	err = stub.PutState(res.AgreementID, serviceAgreementJsonasBytes)									
-	if err != nil {
-		return nil, err
-	}
-	tosend := "{ \"Service Agreement ID\" : \""+res.AgreementID+"\", \"message\" : \"Service Agreement updated succcessfully\", \"code\" : \"200\"}"
-	err = stub.SetEvent("evtsender", []byte(tosend))
-	if err != nil {
-		return nil, err
-	} 
 	fmt.Println("updated Service Agreement")
-	// Customer account deducted and Service Provider account debited with initial payment
-	//dueAmount, _ := strconv.ParseFloat(res.DueAmount, 64)
-	//initialPaymentPercentage, _ := strconv.ParseFloat(res.InitialPaymentPercentage, 64)
-	amountPaid := strconv.FormatFloat(res.DueAmount * res.InitialPaymentPercentage, 'f', 2, 64) 
-
-	function := "updateAccountBalance"
-	invokeArgs1 := util.ToChaincodeArgs(function, res.CustomerId, res.ServiceProviderId, amountPaid)
-	update_result, err1 := stub.InvokeChaincode(accountChaincode, invokeArgs1)
-	if err1 != nil {
-		errStr := fmt.Sprintf("Error in updating account balance from 'Account' chaincode. Got error: %s", err1.Error())
-		fmt.Printf(errStr)
-		return nil, errors.New(errStr)
-	}
-	fmt.Println("transaction Hash: ",update_result);
-	fmt.Println("Account Balances updated successfully.");
-	var paymentStatus string
-	// set Payment status according to agreement status
-	if res.Status == "Pending Customer Acceptance" && newStatus == "Pending start with Service Provider"{
-		paymentStatus = "Initial Payment"
-	}
-	// create Payment transaction 	
-	_function := "createPayment"
-	invokeArgs2 := util.ToChaincodeArgs(_function, res.AgreementID, paymentStatus, res.CustomerId, res.ServiceProviderId, amountPaid, lastUpdatedBy)
-	result, err2 := stub.InvokeChaincode(paymentChaincode, invokeArgs2)
-	if err2 != nil {
-		errStr := fmt.Sprintf("Error in fetching Payment details from 'Payment' chaincode. Got error: %s", err2.Error())
-		fmt.Printf(errStr)
-		return nil, errors.New(errStr)
-	}
-	fmt.Println("transaction Hash: ",result);
-	fmt.Println("Payment Created successfully.");
 	return nil, nil
 }
 
