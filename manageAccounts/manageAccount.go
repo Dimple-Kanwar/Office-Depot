@@ -95,9 +95,9 @@ func (t *ManageAccount) Invoke(stub shim.ChaincodeStubInterface, function string
 		return t.Init(stub, "init", args)
 	}else if function == "createAccount" {											//writes a value to the chaincode state
 		return t.createAccount(stub, args)
-	}else if function == "updateAccountBalance" {									//create a new payment
+	}/*else if function == "updateAccountBalance" {									//create a new payment
 		return t.updateAccountBalance(stub, args)
-	}
+	}*/
 	fmt.Println("invoke did not find func: " + function)					//error
 
 	errMsg := "{ \"message\" : \"Received unknown function invocation\", \"code\" : \"503\"}"
@@ -253,8 +253,8 @@ func (t *ManageAccount) updateAccountBalance(stub shim.ChaincodeStubInterface, a
 	amountPaid := args[2]
 
 	// input sanitation
-	if len(args) != 3 {
-		errMsg := "{ \"message\" : \"Incorrect number of arguments. Expecting \"Customer Account Id and Supplier Provider Account Id\" and \"Amount paid \" as an argument.\", \"code\" : \"503\"}"
+	if len(args) != 4 {
+		errMsg := "{ \"message\" : \"Incorrect number of arguments. Expecting \"Customer Account Id, Service Provider Account Id, Amount paid\" and \" operation\" as an argument.\", \"code\" : \"503\"}"
 		err = stub.SetEvent("errEvent", []byte(errMsg))
 		if err != nil {
 			return nil, err
@@ -266,7 +266,7 @@ func (t *ManageAccount) updateAccountBalance(stub shim.ChaincodeStubInterface, a
 	fmt.Println("Updating the account balance of"+ args[0] + " and " + args[1])
 	// convert string to float
 	_amountPaid, _ := strconv.ParseFloat(amountPaid, 64)
-	
+	operation := arg[3]
 	account := Account{}
 	for i := 0; i < 2; i++ {
 		accountAsBytes, err := stub.GetState(args[i])									//get the var from chaincode state
@@ -279,11 +279,19 @@ func (t *ManageAccount) updateAccountBalance(stub shim.ChaincodeStubInterface, a
 			if account.AccountName == "Customer" {
 				fmt.Println("Customer Account found with account Owner Id : " + args[i])
 				fmt.Println(account);
-				account.AccountBalance =  account.AccountBalance - _amountPaid
+				if operation == "Initial" || operation == "Final" {
+					account.AccountBalance =  account.AccountBalance - _amountPaid
+				}else{
+					account.AccountBalance =  account.AccountBalance + _amountPaid
+				}
 			} else if account.AccountName == "Service Provider" {
 				fmt.Println("Service Provider Account found with account Owner Id : " + args[i])
 				fmt.Println(account);
-				account.AccountBalance =  account.AccountBalance + _amountPaid
+				if operation == "Final" || operation == "Initial"{
+					account.AccountBalance =  account.AccountBalance + _amountPaid
+				}else {
+					account.AccountBalance =  account.AccountBalance - _amountPaid
+				}
 			}
 		}else {
 			errMsg := "{ \"message\" : \""+ args[i]+ " Not Found.\", \"code\" : \"503\"}"
