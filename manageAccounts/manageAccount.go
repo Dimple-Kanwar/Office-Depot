@@ -266,7 +266,7 @@ func (t *ManageAccount) updateAccountBalance(stub shim.ChaincodeStubInterface, a
 	fmt.Println("Updating the account balance of"+ args[0] + " and " + args[1])
 	// convert string to float
 	_amountPaid, _ := strconv.ParseFloat(amountPaid, 64)
-	operation := arg[3]
+	operation := args[3]
 	account := Account{}
 	for i := 0; i < 2; i++ {
 		accountAsBytes, err := stub.GetState(args[i])									//get the var from chaincode state
