@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -18,7 +17,7 @@ var PaymentIndexStr = "_PaymentIndexStr"
 
 type Payment struct{
 	PaymentId string
-	agreementId string 
+	AgreementId string 
 	PaymentType string 
 	CustomerAccount string
 	ReceiverAccount string
@@ -172,7 +171,7 @@ func (t *ManagePayment) createPayment(stub shim.ChaincodeStubInterface, args []s
 
 	// create a pointer/json to the struct 'Payment'
 	PaymentJson := &Payment{paymentId, agreementId, paymentType, customerAccount, receiverAccount, amountPaid, lastUpdatedBy, lastUpdateDate};
-
+	fmt.Printf("PaymentJson:  %v \n", PaymentJson)
 	// convert *Payment to []byte
 	PaymentJsonasBytes, err := json.Marshal(PaymentJson)
 	if err != nil {
@@ -239,6 +238,7 @@ func (t *ManagePayment) getAll_Payment(stub shim.ChaincodeStubInterface, args []
 			errResp = "{\"Error\":\"Failed to get state for " + val + "\"}"
 			return nil, errors.New(errResp)
 		}
+		fmt.Println(valueAsBytes)
 		jsonResp = jsonResp + "\""+ val + "\":" + string(valueAsBytes[:])
 		if i < len(PaymentIndex)-1 {
 			jsonResp = jsonResp + ","
