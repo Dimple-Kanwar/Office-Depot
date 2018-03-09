@@ -95,9 +95,9 @@ func (t *ManageAccount) Invoke(stub shim.ChaincodeStubInterface, function string
 		return t.Init(stub, "init", args)
 	}else if function == "createAccount" {											//writes a value to the chaincode state
 		return t.createAccount(stub, args)
-	}/*else if function == "updateAccountBalance" {									//create a new payment
+	}else if function == "updateAccountBalance" {									//create a new payment
 		return t.updateAccountBalance(stub, args)
-	}*/
+	}
 	fmt.Println("invoke did not find func: " + function)					//error
 
 	errMsg := "{ \"message\" : \"Received unknown function invocation\", \"code\" : \"503\"}"
