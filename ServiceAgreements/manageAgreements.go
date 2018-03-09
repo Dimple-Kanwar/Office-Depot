@@ -52,7 +52,7 @@ type Service_agreement struct{
 
 type Payment struct{
 	PaymentId string
-	agreementId string 
+	AgreementId string 
 	PaymentType string 
 	CustomerAccount string
 	ReceiverAccount string
@@ -315,6 +315,8 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 			fmt.Println("transaction Hash: ")
 			fmt.Println(update_result);
 			fmt.Println("Account Balances updated successfully.");
+			fmt.Println(res.AgreementID);
+			fmt.Println(agreementId);
 			// create Payment transaction 	
 			_function := "createPayment"
 			invokeArgs2 := util.ToChaincodeArgs(_function, res.AgreementID, paymentStatus, res.CustomerId, res.ServiceProviderId, amountPaid, lastUpdatedBy)
