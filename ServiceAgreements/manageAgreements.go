@@ -18,7 +18,7 @@ under the License.
 */
 
 package main
-	
+
 import (
 "errors"
 "fmt"
@@ -36,35 +36,35 @@ type ManageAgreement struct {
 var ServiceAgreementIndexStr = "_ServiceAgreementIndexStr"
 
 type Service_agreement struct{
-	AgreementID string 
-	Status string 
+	AgreementID string
+	Status string
 	CustomerId string
-	ServiceProviderId string 
+	ServiceProviderId string
 	StartDate int64
 	EndDate int64
 	DueAmount float64
-	InitialPaymentPercentage float64 
-	PenaltyAmount float64 
-	PenaltyTimePeriod int64 
-	LastUpdatedBy string 
+	InitialPaymentPercentage float64
+	PenaltyAmount float64
+	PenaltyTimePeriod int64
+	LastUpdatedBy string
 	LastUpdateDate int64
 }
 
 type Payment struct{
 	PaymentId string
-	AgreementId string 
-	PaymentType string 
+	AgreementId string
+	PaymentType string
 	CustomerAccount string
 	ReceiverAccount string
 	AmountPaid float64
-	LastUpdatedBy string 
+	LastUpdatedBy string
 	LastUpdateDate int64
 }
 
 // ============================================================================================================================
 // Main - start the chaincode for Agreement management
 // ============================================================================================================================
-func main() {			
+func main() {
 	err := shim.Start(new(ManageAgreement))
 	if err != nil {
 		fmt.Printf("Error starting Agreement management chaincode: %s", err)
@@ -80,10 +80,10 @@ func (t *ManageAgreement) Init(stub shim.ChaincodeStubInterface, function string
 		err = stub.SetEvent("errEvent", []byte(errMsg))
 		if err != nil {
 			return nil, err
-		} 
+		}
 		return nil, nil
 	}
-	
+
 	var empty []string
 	jsonAsBytes, _ := json.Marshal(empty)								//marshal an emtpy array of strings to clear the index
 	err = stub.PutState(ServiceAgreementIndexStr, jsonAsBytes)
@@ -95,7 +95,7 @@ func (t *ManageAgreement) Init(stub shim.ChaincodeStubInterface, function string
 	err = stub.SetEvent("evtsender", []byte(tosend))
 	if err != nil {
 		return nil, err
-	} 
+	}
 	fmt.Println("ManageAgreement chaincode is deployed successfully.");
 	return nil, nil
 }
@@ -127,8 +127,8 @@ func (t *ManageAgreement) Invoke(stub shim.ChaincodeStubInterface, function stri
 	err := stub.SetEvent("errEvent", []byte(errMsg))
 	if err != nil {
 		return nil, err
-	} 
-	return nil, nil	
+	}
+	return nil, nil
 }
 // ============================================================================================================================
 // Query - Our entry agreementint for Queries
@@ -146,7 +146,7 @@ func (t *ManageAgreement) Query(stub shim.ChaincodeStubInterface, function strin
 	err := stub.SetEvent("errEvent", []byte(errMsg))
 	if err != nil {
 		return nil, err
-	} 
+	}
 	return nil, nil
 }
 // ============================================================================================================================
@@ -159,7 +159,7 @@ func (t *ManageAgreement) createServiceAgreement(stub shim.ChaincodeStubInterfac
 		err = stub.SetEvent("errEvent", []byte(errMsg))
 		if err != nil {
 			return nil, err
-		} 
+		}
 		return nil, errors.New(errMsg)
 	}
 	fmt.Println("creating a new Service Agreement")
@@ -192,12 +192,14 @@ func (t *ManageAgreement) createServiceAgreement(stub shim.ChaincodeStubInterfac
 	startDate, _ := strconv.ParseInt(args[2], 10,64)
 	endDate, _ := strconv.ParseInt(args[3], 10,64)
 	dueAmount, _ := strconv.ParseFloat(args[4], 64)
-    initialPaymentPercentage,_ := strconv.ParseFloat(args[5], 64) / 100; // % of the Total amount due
+  initialPayment,_ := strconv.ParseFloat(args[5], 64);
+	initialPaymentPercentage := initialPayment / 100; // % of the Total amount due
 	penaltyAmount, _ := strconv.ParseFloat(args[6], 64)
-	penaltyTimePeriod,_	:= int64(strconv.ParseFloat(args[7], 64)) // minutes in seconds format
+	penaltyTime,_	:= strconv.ParseFloat(args[7], 64) // minutes in seconds format
+	penaltyTimePeriod := int64(penaltyTime)
 	lastUpdatedBy := args[8]
 	lastUpdateDate := time.Now().Unix() // current unix timestamp
-	
+
 	fmt.Println(agreementId);
 	fmt.Println(customerId);
 	fmt.Println(serviceProviderId);
@@ -226,7 +228,7 @@ func (t *ManageAgreement) createServiceAgreement(stub shim.ChaincodeStubInterfac
 		err := stub.SetEvent("errEvent", []byte(errMsg))
 		if err != nil {
 			return nil, err
-		} 
+		}
 		return nil, errors.New(errMsg)				//stop creating a new service agreement if agreement exists already
 	}
 
@@ -239,7 +241,7 @@ func (t *ManageAgreement) createServiceAgreement(stub shim.ChaincodeStubInterfac
 		return nil, err
 	}
 	//store service agreementId as key
-	err = stub.PutState(agreementId, serviceAgreementJsonasBytes)								
+	err = stub.PutState(agreementId, serviceAgreementJsonasBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +271,7 @@ func (t *ManageAgreement) createServiceAgreement(stub shim.ChaincodeStubInterfac
 	err = stub.SetEvent("evtsender", []byte(tosend))
 	if err != nil {
 		return nil, err
-	} 	
+	}
 	fmt.Println("Service agreement created succcessfully.")
 	return nil, nil
 }
@@ -286,7 +288,7 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 		err = stub.SetEvent("errEvent", []byte(errMsg))
 		if err != nil {
 			return nil, err
-		} 
+		}
 		return nil, errors.New(errMsg)
 	}
 	// set attributes
@@ -296,7 +298,7 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 	paymentChaincode := args[3]
 	accountChaincode := args[4]
 	// Fetch the service agreement details by agreementId
-	agreementAsBytes, err := stub.GetState(agreementId)		
+	agreementAsBytes, err := stub.GetState(agreementId)
 	if err != nil {
 		jsonResp = "{\"Error\":\"Failed to get state for " + agreementId + "\"}"
 		return nil, errors.New(jsonResp)
@@ -314,7 +316,7 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 		if res.Status == "Pending Customer Acceptance" && newStatus == "Pending start with Service Provider"{
 			paymentStatus = "Initial Payment"
 			// Customer account deducted and Service Provider account debited with initial payment
-			amountPaid := strconv.FormatFloat(res.DueAmount * res.InitialPaymentPercentage, 'f', 2, 64) 
+			amountPaid := strconv.FormatFloat(res.DueAmount * res.InitialPaymentPercentage, 'f', 2, 64)
 			function := "updateAccountBalance"
 			invokeArgs1 := util.ToChaincodeArgs(function, res.CustomerId, res.ServiceProviderId, amountPaid, "Initial")
 			update_result, err1 := stub.InvokeChaincode(accountChaincode, invokeArgs1)
@@ -328,7 +330,7 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 			fmt.Println("Account Balances updated successfully.");
 			fmt.Println(res.AgreementID);
 			fmt.Println(agreementId);
-			// create Payment transaction 	
+			// create Payment transaction
 			_function := "createPayment"
 			invokeArgs2 := util.ToChaincodeArgs(_function, res.AgreementID, paymentStatus, res.CustomerId, res.ServiceProviderId, amountPaid, lastUpdatedBy)
 			result, err2 := stub.InvokeChaincode(paymentChaincode, invokeArgs2)
@@ -342,12 +344,12 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 			fmt.Println("Payment Created successfully.");
 		}else if newStatus == "Work in Progress" {
 			// no penalty applied
-			// do nothing, just update the agreement status	
+			// do nothing, just update the agreement status
 		} else if newStatus == "Work Completed" {
 			paymentStatus = "Final Payment"
 			//	Customer account deducted with final payment (total amount – initial payment)
 			//	Service Provider account credited with final payment
-			amountPaid := strconv.FormatFloat(res.DueAmount -(res.DueAmount * res.InitialPaymentPercentage), 'f', 2, 64) 
+			amountPaid := strconv.FormatFloat(res.DueAmount -(res.DueAmount * res.InitialPaymentPercentage), 'f', 2, 64)
 			function := "updateAccountBalance"
 			invokeArgs1 := util.ToChaincodeArgs(function, res.CustomerId, res.ServiceProviderId, amountPaid, "Final")
 			update_result, err1 := stub.InvokeChaincode(accountChaincode, invokeArgs1)
@@ -359,7 +361,7 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 			fmt.Println("transaction Hash: ")
 			fmt.Println(update_result);
 			fmt.Println("Account Balances updated successfully.");
-			// create Payment transaction 	
+			// create Payment transaction
 			_function := "createPayment"
 			invokeArgs2 := util.ToChaincodeArgs(_function, res.AgreementID, paymentStatus, res.CustomerId, res.ServiceProviderId, amountPaid, lastUpdatedBy)
 			result, err2 := stub.InvokeChaincode(paymentChaincode, invokeArgs2)
@@ -374,14 +376,14 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 		}
 		//build the Service Agreement json
 		serviceAgreementJson := &Service_agreement{res.AgreementID, newStatus, res.CustomerId, res.ServiceProviderId, res.StartDate, res.EndDate, res.DueAmount, res.InitialPaymentPercentage, res.PenaltyAmount, res.PenaltyTimePeriod, res.LastUpdatedBy, res.LastUpdateDate}
-		
+
 		// convert *Service_agreement to []byte
 		serviceAgreementJsonasBytes, err := json.Marshal(serviceAgreementJson)
 		if err != nil {
 			return nil, err
 		}
 		//store Agreement id as key
-		err = stub.PutState(res.AgreementID, serviceAgreementJsonasBytes)									
+		err = stub.PutState(res.AgreementID, serviceAgreementJsonasBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -395,7 +397,7 @@ func (t *ManageAgreement) updateServiceAgreement(stub shim.ChaincodeStubInterfac
 		err = stub.SetEvent("errEvent", []byte(errMsg))
 		if err != nil {
 			return nil, err
-		} 
+		}
 		return nil, nil
 	}
 	fmt.Println("updated Service Agreement")
@@ -414,7 +416,7 @@ func (t *ManageAgreement) checkPenalty(stub shim.ChaincodeStubInterface, args []
 		err = stub.SetEvent("errEvent", []byte(errMsg))
 		if err != nil {
 			return nil, err
-		} 
+		}
 		return nil, errors.New(errMsg)
 	}
 	// set attributes
@@ -424,7 +426,7 @@ func (t *ManageAgreement) checkPenalty(stub shim.ChaincodeStubInterface, args []
 	accountChaincode := args[3]
 
 	// Fetch the service agreement details by agreementId
-	agreementAsBytes, err := stub.GetState(agreementId)		
+	agreementAsBytes, err := stub.GetState(agreementId)
 	if err != nil {
 		jsonResp = "{\"Error\":\"Failed to get state for " + agreementId + "\"}"
 		return nil, errors.New(jsonResp)
@@ -453,7 +455,7 @@ func (t *ManageAgreement) checkPenalty(stub shim.ChaincodeStubInterface, args []
 			}
 			fmt.Println("transaction Hash: ",update_result);
 			fmt.Println("Account Balances updated successfully.");
-			// create Payment transaction 	
+			// create Payment transaction
 			_function := "createPayment"
 			invokeArgs1 := util.ToChaincodeArgs(_function, res.AgreementID, paymentStatus, res.CustomerId, res.ServiceProviderId,  strconv.FormatFloat(amountPaid,'f', 2, 64), lastUpdatedBy)
 			result, err1 := stub.InvokeChaincode(paymentChaincode, invokeArgs1)
@@ -468,7 +470,7 @@ func (t *ManageAgreement) checkPenalty(stub shim.ChaincodeStubInterface, args []
 			err = stub.SetEvent("evtsender", []byte(tosend))
 			if err != nil {
 				return nil, err
-			} 
+			}
 			fmt.Println(tosend);
 		}else{
 			tosend := "{ \"Service Agreement Id\" : \""+agreementId+"\", \"message\" : \"Penalty cannot be applied to the agreement.\", \"code\" : \"200\"}"
@@ -483,7 +485,7 @@ func (t *ManageAgreement) checkPenalty(stub shim.ChaincodeStubInterface, args []
 		err = stub.SetEvent("errEvent", []byte(errMsg))
 		if err != nil {
 			return nil, err
-		} 
+		}
 		return nil, nil
 	}
 	fmt.Println("Penalty Check Completed.");
@@ -502,7 +504,7 @@ func (t *ManageAgreement) getAll_ServiceAgreement(stub shim.ChaincodeStubInterfa
 	// 	err = stub.SetEvent("errEvent", []byte(errMsg))
 	// 	if err != nil {
 	// 		return nil, err
-	// 	} 
+	// 	}
 	// 	return nil, nil
 	// }
 
