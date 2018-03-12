@@ -154,8 +154,8 @@ func (t *ManageAgreement) Query(stub shim.ChaincodeStubInterface, function strin
 // ============================================================================================================================
 func (t *ManageAgreement) createServiceAgreement(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	var err error
-	if len(args) != 6 {
-		errMsg := "{ \"message\" : \"Incorrect number of arguments. Expecting 6 arguments.\", \"code\" : \"503\"}"
+	if len(args) != 9 {
+		errMsg := "{ \"message\" : \"Incorrect number of arguments. Expecting 9 arguments.\", \"code\" : \"503\"}"
 		err = stub.SetEvent("errEvent", []byte(errMsg))
 		if err != nil {
 			return nil, err
@@ -175,6 +175,12 @@ func (t *ManageAgreement) createServiceAgreement(stub shim.ChaincodeStubInterfac
 	}else if len(args[4]) <= 0 {
 		return nil, errors.New("Due Amount of a Service agreement cannot be empty.")
 	}else if len(args[5]) <= 0 {
+		return nil, errors.New("Initial Payment Percentage cannot be empty.")
+	}else if len(args[6]) <= 0 {
+		return nil, errors.New("Penalty Amount for a Service agreement cannot be empty.")
+	}else if len(args[7]) <= 0 {
+		return nil, errors.New("Penalty Time Period of a Service agreement cannot be empty.")
+	}else if len(args[8]) <= 0 {
 		return nil, errors.New("Last Updated By cannot be empty.")
 	}
 
@@ -186,10 +192,10 @@ func (t *ManageAgreement) createServiceAgreement(stub shim.ChaincodeStubInterfac
 	startDate, _ := strconv.ParseInt(args[2], 10,64)
 	endDate, _ := strconv.ParseInt(args[3], 10,64)
 	dueAmount, _ := strconv.ParseFloat(args[4], 64)
-	initialPaymentPercentage := 0.10 // 10% of the Total amount
-	penaltyAmount, _ := strconv.ParseFloat("100", 64)
-	penaltyTimePeriod	:= int64(120) // 2 minutes in seconds format
-	lastUpdatedBy := args[5]
+    initialPaymentPercentage,_ := strconv.ParseFloat(args[5], 64) / 100; // % of the Total amount due
+	penaltyAmount, _ := strconv.ParseFloat(args[6], 64)
+	penaltyTimePeriod,_	:= int64(strconv.ParseFloat(args[7], 64)) // minutes in seconds format
+	lastUpdatedBy := args[8]
 	lastUpdateDate := time.Now().Unix() // current unix timestamp
 	
 	fmt.Println(agreementId);
@@ -199,6 +205,9 @@ func (t *ManageAgreement) createServiceAgreement(stub shim.ChaincodeStubInterfac
 	fmt.Println(startDate);
 	fmt.Println(endDate);
 	fmt.Println(dueAmount);
+	fmt.Println(initialPaymentPercentage);
+	fmt.Println(penaltyAmount);
+	fmt.Println(penaltyTimePeriod);
 	fmt.Println(lastUpdatedBy);
 	fmt.Println(lastUpdateDate);
 
